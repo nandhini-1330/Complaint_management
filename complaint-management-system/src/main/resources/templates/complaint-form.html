@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Submit a Complaint</title>
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: radial-gradient(circle at top left, #232342, #0f0f1e 70%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+        margin: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Glitter / sparkle layer */
+    .sparkle {
+        position: absolute;
+        border-radius: 50%;
+        background: #ffffff;
+        opacity: 0.8;
+        pointer-events: none;
+        animation: twinkle linear infinite;
+    }
+
+    @keyframes twinkle {
+        0%   { transform: translateY(0) scale(1); opacity: 0; }
+        50%  { opacity: 1; }
+        100% { transform: translateY(-40px) scale(0.3); opacity: 0; }
+    }
+
+    .card {
+        background: #1a1a2e;
+        padding: 35px;
+        border-radius: 16px;
+        box-shadow: 0 0 25px rgba(108, 92, 231, 0.4), 0 10px 40px rgba(0,0,0,0.6);
+        width: 420px;
+        border: 1px solid rgba(108, 92, 231, 0.3);
+        position: relative;
+        z-index: 2;
+        transition: box-shadow 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 0 40px rgba(108, 92, 231, 0.7), 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    h2 {
+        margin-top: 0;
+        color: #f1f1f1;
+        font-size: 24px;
+        border-left: 5px solid #a29bfe;
+        padding-left: 12px;
+        text-shadow: 0 0 10px rgba(162, 155, 254, 0.5);
+    }
+
+    label {
+        display: block;
+        margin-top: 16px;
+        font-weight: 600;
+        color: #cfcfe8;
+        font-size: 14px;
+    }
+
+    input, textarea, select {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        border: 1.5px solid #3a3a55;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 14px;
+        background: #24243e;
+        color: #f1f1f1;
+        transition: border 0.25s, box-shadow 0.25s, transform 0.15s;
+    }
+    input::placeholder, textarea::placeholder { color: #7a7a9a; }
+
+    input:hover, textarea:hover, select:hover {
+        border-color: #6c5ce7;
+        transform: translateY(-1px);
+    }
+    input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: #a29bfe;
+        box-shadow: 0 0 12px rgba(162, 155, 254, 0.6);
+    }
+
+    select option { background: #24243e; color: #f1f1f1; }
+
+    button {
+        margin-top: 22px;
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #6c5ce7, #341f97);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+    }
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 22px rgba(108, 92, 231, 0.7);
+        opacity: 0.95;
+    }
+    button:active {
+        transform: translateY(0);
+    }
+
+    #responseMsg {
+        margin-top: 15px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .success { color: #2ecc71; text-shadow: 0 0 8px rgba(46, 204, 113, 0.5); }
+    .error { color: #ff6b6b; text-shadow: 0 0 8px rgba(255, 107, 107, 0.5); }
+</style>
+</head>
+<body>
+
+<!-- Glitter particles container -->
+<div id="sparkleContainer"></div>
+
+<div class="card">
+    <h2>Submit a Complaint</h2>
+    <form id="complaintForm">
+        <label>Your Name</label>
+        <input type="text" id="customerName" required>
+
+        <label>Your Email</label>
+        <input type="email" id="customerEmail" required>
+
+        <label>Complaint Title</label>
+        <input type="text" id="title" required>
+
+        <label>Description</label>
+        <textarea id="description" rows="4" required></textarea>
+
+        <label>Source</label>
+        <select id="source">
+            <option value="FORM">Form</option>
+            <option value="EMAIL">Email</option>
+            <option value="CHAT">Chat</option>
+            <option value="WHATSAPP">WhatsApp</option>
+            <option value="CALL">Call</option>
+        </select>
+
+        <button type="submit">Submit Complaint</button>
+    </form>
+    <div id="responseMsg"></div>
+</div>
+
+<script>
+// Generate glitter particles
+const sparkleContainer = document.getElementById('sparkleContainer');
+const sparkleCount = 60;
+
+for (let i = 0; i < sparkleCount; i++) {
+    const sparkle = document.createElement('div');
+    sparkle.className = 'sparkle';
+
+    const size = Math.random() * 3 + 1; // 1px - 4px
+    sparkle.style.width = size + 'px';
+    sparkle.style.height = size + 'px';
+    sparkle.style.left = Math.random() * 100 + 'vw';
+    sparkle.style.top = Math.random() * 100 + 'vh';
+    sparkle.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    sparkle.style.animationDelay = Math.random() * 5 + 's';
+
+    sparkleContainer.appendChild(sparkle);
+}
+
+// Form submit logic
+document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const data = {
+        customerName: document.getElementById('customerName').value,
+        customerEmail: document.getElementById('customerEmail').value,
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        source: document.getElementById('source').value
+    };
+
+    const msgDiv = document.getElementById('responseMsg');
+    msgDiv.innerText = "Submitting...";
+    msgDiv.className = "";
+
+    try {
+        const res = await fetch('http://localhost:8080/api/complaints/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) throw new Error('Submit failed');
+
+        const result = await res.json();
+        msgDiv.innerText = "Complaint submitted successfully! ID: " + result.id;
+        msgDiv.className = "success";
+        document.getElementById('complaintForm').reset();
+
+    } catch (err) {
+        msgDiv.innerText = "Error submitting complaint. Try again.";
+        msgDiv.className = "error";
+        console.error(err);
+    }
+});
+</script>
+
+</body>
+</html>

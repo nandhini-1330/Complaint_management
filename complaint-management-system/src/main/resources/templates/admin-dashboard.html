@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard - Complaints</title>
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: radial-gradient(circle at top left, #232342, #0f0f1e 70%);
+        padding: 30px;
+        margin: 0;
+        color: #eee;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    /* Glitter / sparkle layer */
+    .sparkle {
+        position: absolute;
+        border-radius: 50%;
+        background: #ffffff;
+        opacity: 0.8;
+        pointer-events: none;
+        animation: twinkle linear infinite;
+    }
+    @keyframes twinkle {
+        0%   { transform: translateY(0) scale(1); opacity: 0; }
+        50%  { opacity: 1; }
+        100% { transform: translateY(-40px) scale(0.3); opacity: 0; }
+    }
+
+    h2 {
+        color: #f1f1f1;
+        border-left: 5px solid #a29bfe;
+        padding-left: 12px;
+        text-shadow: 0 0 10px rgba(162, 155, 254, 0.5);
+        position: relative;
+        z-index: 2;
+    }
+    p { color: #9d9dc0; position: relative; z-index: 2; }
+    p b { color: #ff6b6b; font-size: 16px; text-shadow: 0 0 8px rgba(255,107,107,0.5); }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #1a1a2e;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 25px rgba(108, 92, 231, 0.35), 0 10px 40px rgba(0,0,0,0.6);
+        position: relative;
+        z-index: 2;
+        border: 1px solid rgba(108, 92, 231, 0.25);
+    }
+    th, td {
+        padding: 14px;
+        border-bottom: 1px solid #2f2f4a;
+        text-align: left;
+        font-size: 14px;
+    }
+    th {
+        background: linear-gradient(135deg, #6c5ce7, #341f97);
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    tr { transition: background 0.2s ease, transform 0.15s ease; }
+    tr:hover {
+        background: #26263f;
+    }
+    td { color: #d8d8ee; }
+    td small { color: #8888aa; }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        color: white;
+        font-weight: 600;
+    }
+    .status-NEW { background: #3498db; }
+    .status-IN_PROGRESS { background: #f39c12; }
+    .status-RESOLVED { background: #27ae60; }
+    .status-CLOSED { background: #7f8c8d; }
+
+    .sla-breached { background-color: #3a1622 !important; border-left: 4px solid #ff4757; }
+    .sla-breached:hover { background-color: #4a1c2b !important; }
+
+    button.replyBtn {
+        padding: 7px 14px;
+        background: linear-gradient(135deg, #6c5ce7, #341f97);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    button.replyBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(108, 92, 231, 0.7);
+    }
+    button.replyBtn:active { transform: translateY(0); }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.65);
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    .modal-box {
+        background: #1a1a2e;
+        padding: 28px;
+        border-radius: 12px;
+        width: 450px;
+        color: #eee;
+        box-shadow: 0 0 30px rgba(108, 92, 231, 0.5), 0 10px 40px rgba(0,0,0,0.6);
+        border: 1px solid rgba(108, 92, 231, 0.3);
+    }
+    .modal-box h3 {
+        margin-top: 0;
+        color: #fff;
+        text-shadow: 0 0 8px rgba(162, 155, 254, 0.4);
+    }
+    .modal-box textarea {
+        width: 100%;
+        height: 100px;
+        margin-top: 10px;
+        padding: 10px;
+        box-sizing: border-box;
+        border-radius: 6px;
+        border: 1.5px solid #3a3a55;
+        background: #24243e;
+        color: #f1f1f1;
+        font-size: 14px;
+        transition: border 0.25s, box-shadow 0.25s;
+    }
+    .modal-box textarea::placeholder { color: #7a7a9a; }
+    .modal-box textarea:focus {
+        outline: none;
+        border-color: #a29bfe;
+        box-shadow: 0 0 12px rgba(162, 155, 254, 0.6);
+    }
+    .modal-actions {
+        margin-top: 18px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .btn-cancel {
+        background: #3a3a55;
+        color: #eee;
+        border: none;
+        padding: 9px 18px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .btn-cancel:hover { background: #4a4a6a; }
+    .btn-send {
+        background: linear-gradient(135deg, #27ae60, #1e8449);
+        color: white;
+        border: none;
+        padding: 9px 18px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-send:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(39, 174, 96, 0.6);
+    }
+</style>
+</head>
+<body>
+
+<!-- Glitter particles container -->
+<div id="sparkleContainer"></div>
+
+<h2>📋 Complaint Dashboard</h2>
+<p>Total Open SLA Breached: <b id="slaBreachedCount">0</b></p>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>SLA</th>
+            <th>Created At</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="complaintTableBody">
+        <!-- rows injected by JS -->
+    </tbody>
+</table>
+
+<!-- Reply Modal -->
+<div class="modal-overlay" id="replyModal">
+    <div class="modal-box">
+        <h3>Reply to Complaint #<span id="modalComplaintId"></span></h3>
+        <p id="modalComplaintTitle" style="color:#9d9dc0;"></p>
+        <textarea id="replyText" placeholder="Type your reply..."></textarea>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-send" onclick="sendReply()">Send Reply & Email</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Generate glitter particles
+const sparkleContainer = document.getElementById('sparkleContainer');
+const sparkleCount = 60;
+
+for (let i = 0; i < sparkleCount; i++) {
+    const sparkle = document.createElement('div');
+    sparkle.className = 'sparkle';
+
+    const size = Math.random() * 3 + 1;
+    sparkle.style.width = size + 'px';
+    sparkle.style.height = size + 'px';
+    sparkle.style.left = Math.random() * 100 + 'vw';
+    sparkle.style.top = Math.random() * 100 + 'vh';
+    sparkle.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    sparkle.style.animationDelay = Math.random() * 5 + 's';
+
+    sparkleContainer.appendChild(sparkle);
+}
+
+const API_BASE = 'http://localhost:8080/api/complaints';
+let currentComplaintId = null;
+
+const SLA_HOURS = { CRITICAL: 4, HIGH: 24, MEDIUM: 72, LOW: 168 };
+
+function isSLABreached(c) {
+    if (c.status === 'RESOLVED' || c.status === 'CLOSED') return false;
+    const created = new Date(c.createdAt);
+    const hours = (new Date() - created) / (1000 * 60 * 60);
+    const limit = SLA_HOURS[c.priorityLabel] || 168;
+    return hours > limit;
+}
+
+async function loadComplaints() {
+    try {
+        const res = await fetch(`${API_BASE}/all`);
+        const complaints = await res.json();
+
+        const tbody = document.getElementById('complaintTableBody');
+        tbody.innerHTML = '';
+
+        let breachedCount = 0;
+
+        complaints.forEach(c => {
+            const breached = isSLABreached(c);
+            if (breached) breachedCount++;
+
+            const row = document.createElement('tr');
+            if (breached) row.classList.add('sla-breached');
+
+            row.innerHTML = `
+                <td>${c.id}</td>
+                <td>${c.customerName || '-'}<br><small>${c.customerEmail || ''}</small></td>
+                <td>${c.title}</td>
+                <td><span class="badge status-${c.status}">${c.status}</span></td>
+                <td>${breached ? '⚠️ Breached' : '✅ OK'}</td>
+                <td>${new Date(c.createdAt).toLocaleString()}</td>
+                <td><button class="replyBtn" onclick="openModal(${c.id}, '${(c.title || '').replace(/'/g, "\\'")}')">Reply</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById('slaBreachedCount').innerText = breachedCount;
+
+    } catch (err) {
+        console.error('Failed to load complaints', err);
+    }
+}
+
+function openModal(id, title) {
+    currentComplaintId = id;
+    document.getElementById('modalComplaintId').innerText = id;
+    document.getElementById('modalComplaintTitle').innerText = title;
+    document.getElementById('replyText').value = '';
+    document.getElementById('replyModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('replyModal').style.display = 'none';
+    currentComplaintId = null;
+}
+
+async function sendReply() {
+    const reply = document.getElementById('replyText').value.trim();
+    if (!reply) {
+        alert('Please type a reply');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/${currentComplaintId}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reply })
+        });
+
+        if (!res.ok) throw new Error('Reply failed');
+
+        alert('Reply sent and email delivered to customer!');
+        closeModal();
+        loadComplaints();
+
+    } catch (err) {
+        alert('Failed to send reply. Check backend/email config.');
+        console.error(err);
+    }
+}
+
+// Load on page start, refresh every 30s
+loadComplaints();
+setInterval(loadComplaints, 30000);
+</script>
+
+</body>
+</html>

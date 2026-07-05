@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolve — Track Your Complaint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070D18;
+    --bg-alt: #0B1526;
+    --surface: #101E36;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.05);
+    --amber: #EFA940;
+    --amber-soft: #FFC471;
+    --red: #E2544A;
+    --green: #4CA073;
+    --blue: #86B7E8;
+    --cream: #F3EFE6;
+    --ink-soft: #93A0B4;
+    --ink-faint: #5E6B80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: -1;
+    background-image:
+      radial-gradient(circle at 85% -10%, rgba(239,169,64,0.10), transparent 45%),
+      radial-gradient(circle at 10% 110%, rgba(76,160,115,0.07), transparent 40%);
+  }
+
+  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: -0.01em; }
+  a { text-decoration: none; color: inherit; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(7, 13, 24, 0.8);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.2rem; }
+  .logo-mark { width: 26px; height: 26px; border: 2px solid var(--amber); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .logo-mark::after { content:''; width: 7px; height: 7px; background: var(--amber); border-radius: 50%; }
+  .nav-links { display: flex; gap: 30px; font-size: 0.9rem; color: var(--ink-soft); }
+  .nav-links a:hover { color: var(--amber); }
+  .nav-cta { background: var(--amber); color: var(--bg) !important; padding: 10px 20px; border-radius: 3px; font-weight: 700; font-size: 0.85rem; }
+
+  .page-wrap { max-width: 640px; margin: 0 auto; padding: 60px 32px 100px; }
+
+  .page-head { text-align: center; margin-bottom: 40px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--amber); background: rgba(239,169,64,0.1);
+    padding: 6px 14px; border-radius: 20px; margin-bottom: 20px;
+    border: 1px solid rgba(239,169,64,0.22);
+  }
+  .eyebrow::before { content:''; width: 6px; height: 6px; background: var(--amber); border-radius: 50%; }
+  .page-head h1 { font-size: clamp(1.8rem, 3.5vw, 2.4rem); margin-bottom: 12px; }
+  .page-head p { color: var(--ink-soft); font-size: 1rem; }
+
+  .search-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; display: flex; gap: 10px; margin-bottom: 40px;
+  }
+  .search-card input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 13px 16px; color: var(--cream); font-family: 'IBM Plex Mono', monospace; font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    text-transform: uppercase;
+  }
+  .search-card input::placeholder { text-transform: none; font-family: 'Inter', sans-serif; color: var(--ink-faint); }
+  .search-card input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(239,169,64,0.14); }
+  .search-card button {
+    background: var(--amber); color: var(--bg); border: none; padding: 0 26px;
+    border-radius: 6px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .search-card button:hover { background: var(--amber-soft); transform: translateY(-1px); }
+  .search-card button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .hint { text-align: center; color: var(--ink-faint); font-size: 0.8rem; margin-top: -28px; margin-bottom: 40px; }
+  .hint .mono { color: var(--ink-soft); }
+
+  .result-card {
+    display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 30px 28px;
+  }
+  .result-card.show { display: block; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--ink-faint); margin-bottom: 8px; }
+  .result-title { font-size: 1.3rem; margin-bottom: 16px; }
+
+  .result-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
+  .badge-critical { background: rgba(226,84,74,0.18); color: #FF9C93; }
+  .badge-high { background: rgba(239,169,64,0.18); color: var(--amber); }
+  .badge-medium { background: rgba(76,160,115,0.18); color: #86D6AA; }
+  .badge-low { background: rgba(147,160,180,0.18); color: var(--ink-soft); }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; background: var(--bg); border: 1px solid var(--border); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-new { background: var(--blue); }
+  .dot-progress { background: var(--amber); }
+  .dot-resolved { background: var(--green); }
+  .dot-closed { background: var(--ink-faint); }
+
+  .result-desc { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border-soft); }
+
+  .meta-row { display: flex; gap: 24px; margin-bottom: 26px; flex-wrap: wrap; }
+  .meta-item .ml { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+  .meta-item .mv { font-size: 0.88rem; color: var(--cream); }
+
+  .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--amber); margin-bottom: 16px; }
+
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 1px; background: var(--border); }
+  .timeline-item { position: relative; padding-bottom: 20px; }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -20px; top: 3px; width: 11px; height: 11px; border-radius: 50%;
+    background: var(--amber); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border);
+  }
+  .timeline-item .tl-status { font-size: 0.85rem; font-weight: 600; color: var(--cream); margin-bottom: 3px; }
+  .timeline-item .tl-remarks { font-size: 0.82rem; color: var(--ink-soft); margin-bottom: 4px; }
+  .timeline-item .tl-meta { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--ink-faint); }
+
+  .empty-state, .loading-state, .error-state {
+    text-align: center; padding: 20px 10px; color: var(--ink-soft); font-size: 0.9rem;
+  }
+  .error-state { color: #FF9C93; }
+  .spinner {
+    width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--amber);
+    border-radius: 50%; margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    nav { padding: 16px 24px; }
+    .search-card { flex-direction: column; }
+    .meta-row { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo"><span class="logo-mark"></span>Resolve</a>
+  <div class="nav-links">
+    <a href="index.html#pipeline">How it works</a>
+    <a href="faq.html">FAQ</a>
+    <a href="track.html">Track Complaint</a>
+  </div>
+  <a href="login.html" class="nav-cta">Agent Sign In</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <div class="eyebrow">Live status lookup</div>
+    <h1>Track your complaint</h1>
+    <p>Enter your ticket ID to see the current status and full history.</p>
+  </div>
+
+  <div class="search-card">
+    <input type="text" id="ticket-input" placeholder="e.g. CMS-0008 or 8" onkeydown="if(event.key==='Enter') trackComplaint()">
+    <button onclick="trackComplaint()" id="track-btn">Track</button>
+  </div>
+  <div class="hint">Your ticket ID looks like <span class="mono">CMS-0008</span> — you received it after filing a complaint.</div>
+
+  <div id="feedback"></div>
+
+  <div class="result-card" id="result-card">
+    <div class="result-id mono" id="r-id">#CMS-0000</div>
+    <h2 class="result-title" id="r-title">Complaint title</h2>
+
+    <div class="result-badges" id="r-badges"></div>
+
+    <div class="result-desc" id="r-desc"></div>
+
+    <div class="meta-row">
+      <div class="meta-item"><div class="ml">Category</div><div class="mv" id="r-category">—</div></div>
+      <div class="meta-item"><div class="ml">Department</div><div class="mv" id="r-dept">—</div></div>
+      <div class="meta-item"><div class="ml">Filed on</div><div class="mv" id="r-created">—</div></div>
+    </div>
+
+    <div class="section-label">Status history</div>
+    <div class="timeline" id="r-timeline"></div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function badgeClassForPriority(p) {
+    switch ((p || '').toUpperCase()) {
+      case 'CRITICAL': return 'badge-critical';
+      case 'HIGH': return 'badge-high';
+      case 'MEDIUM': return 'badge-medium';
+      default: return 'badge-low';
+    }
+  }
+
+  function dotClassForStatus(s) {
+    switch ((s || '').toUpperCase()) {
+      case 'NEW': return 'dot-new';
+      case 'IN_PROGRESS': return 'dot-progress';
+      case 'RESOLVED': return 'dot-resolved';
+      default: return 'dot-closed';
+    }
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' · ' +
+           d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function extractId(raw) {
+    const cleaned = raw.trim().toUpperCase().replace('CMS-', '').replace('#', '');
+    const num = parseInt(cleaned, 10);
+    return isNaN(num) ? null : num;
+  }
+
+  async function trackComplaint() {
+    const input = document.getElementById('ticket-input');
+    const feedback = document.getElementById('feedback');
+    const resultCard = document.getElementById('result-card');
+    const btn = document.getElementById('track-btn');
+
+    const id = extractId(input.value);
+    resultCard.classList.remove('show');
+    feedback.innerHTML = '';
+
+    if (!id) {
+      feedback.innerHTML = '<div class="error-state">Please enter a valid ticket ID, like CMS-0008.</div>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    feedback.innerHTML = '<div class="loading-state"><div class="spinner"></div>Looking up your complaint...</div>';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/complaints/${id}`);
+      if (!res.ok) throw new Error('not-found');
+      const complaint = await res.json();
+
+      feedback.innerHTML = '';
+      renderResult(complaint);
+
+      const timelineRes = await fetch(`${API_BASE}/api/complaints/${id}/timeline`);
+      const timeline = timelineRes.ok ? await timelineRes.json() : [];
+      renderTimeline(timeline);
+
+      resultCard.classList.add('show');
+    } catch (err) {
+      feedback.innerHTML = `<div class="error-state">No complaint found with ticket ID <span class="mono">CMS-${String(id).padStart(4,'0')}</span>. Please double-check and try again.</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Track';
+    }
+  }
+
+  function renderResult(c) {
+    document.getElementById('r-id').textContent = '#CMS-' + String(c.id).padStart(4, '0');
+    document.getElementById('r-title').textContent = c.title || 'Untitled complaint';
+    document.getElementById('r-desc').textContent = c.description || 'No description provided.';
+    document.getElementById('r-category').textContent = c.category || '—';
+    document.getElementById('r-dept').textContent = c.department ? c.department.name : 'Not yet assigned';
+    document.getElementById('r-created').textContent = formatDate(c.createdAt);
+
+    document.getElementById('r-badges').innerHTML = `
+      <span class="badge ${badgeClassForPriority(c.priorityLabel)}">${(c.priorityLabel || 'LOW').toUpperCase()} PRIORITY</span>
+      <span class="status-pill"><span class="status-dot ${dotClassForStatus(c.status)}"></span>${(c.status || 'NEW').replace('_', ' ')}</span>
+    `;
+  }
+
+  function renderTimeline(entries) {
+    const container = document.getElementById('r-timeline');
+    if (!entries || entries.length === 0) {
+      container.innerHTML = '<div class="empty-state">No updates logged yet.</div>';
+      return;
+    }
+    container.innerHTML = entries.map(e => `
+      <div class="timeline-item">
+        <div class="tl-status">${(e.status || '').replace('_', ' ')}</div>
+        <div class="tl-remarks">${escapeHtml(e.remarks || '')}</div>
+        <div class="tl-meta">${formatDate(e.timestamp)}</div>
+      </div>
+    `).join('');
+  }
+</script>
+
+</body>
+</html>

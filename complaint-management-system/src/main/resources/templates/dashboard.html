@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolve — Agent Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070D18;
+    --bg-alt: #0B1526;
+    --surface: #101E36;
+    --surface-2: #172945;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.05);
+    --amber: #EFA940;
+    --amber-soft: #FFC471;
+    --amber-dark: #C4801C;
+    --red: #E2544A;
+    --green: #4CA073;
+    --cream: #F3EFE6;
+    --ink-soft: #93A0B4;
+    --ink-faint: #5E6B80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: -0.01em; }
+  a { text-decoration: none; color: inherit; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  button { font-family: inherit; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(7, 13, 24, 0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.15rem; }
+  .logo-mark { width: 24px; height: 24px; border: 2px solid var(--amber); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .logo-mark::after { content:''; width: 6px; height: 6px; background: var(--amber); border-radius: 50%; }
+  .nav-right { display: flex; align-items: center; gap: 20px; }
+  .nav-back { font-size: 0.85rem; color: var(--ink-soft); transition: color 0.2s ease; }
+  .nav-back:hover { color: var(--amber); }
+  .agent-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 20px; font-size: 0.82rem;
+  }
+  .agent-chip input {
+    background: transparent; border: none; color: var(--cream);
+    font-family: 'Inter', sans-serif; font-size: 0.82rem; width: 90px;
+  }
+  .agent-chip input:focus { outline: none; }
+  .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px rgba(76,160,115,0.7); }
+
+  /* ---------- PAGE HEADER ---------- */
+  .page-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 40px 80px; }
+
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; }
+  .page-head h1 { font-size: 1.9rem; margin-bottom: 6px; }
+  .page-head p { color: var(--ink-soft); font-size: 0.95rem; }
+
+  .refresh-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--cream);
+    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .refresh-btn:hover { border-color: var(--amber); }
+  .refresh-btn.spinning svg { animation: spin 0.7s linear; }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  /* ---------- STAT CHIPS ---------- */
+  .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 36px; }
+  .stat-chip {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px 20px; transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .stat-chip:hover { transform: translateY(-2px); }
+  .stat-chip .n { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 600; }
+  .stat-chip .l { font-size: 0.76rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+  .stat-chip.critical .n { color: var(--red); }
+  .stat-chip.high .n { color: var(--amber); }
+  .stat-chip.open .n { color: var(--cream); }
+  .stat-chip.progress .n { color: #86B7E8; }
+  .stat-chip.resolved .n { color: var(--green); }
+
+  /* ---------- FILTER BAR ---------- */
+  .filter-bar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-chip {
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-soft);
+    padding: 7px 16px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .filter-chip:hover { color: var(--cream); border-color: var(--amber-dark); }
+  .filter-chip.active { background: var(--amber); color: var(--bg); border-color: var(--amber); font-weight: 600; }
+
+  .search-box {
+    margin-left: auto; position: relative;
+  }
+  .search-box input {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 9px 16px 9px 36px; color: var(--cream); font-size: 0.85rem; width: 240px;
+    transition: border-color 0.2s ease;
+  }
+  .search-box input:focus { outline: none; border-color: var(--amber); }
+  .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; opacity: 0.5; }
+
+  /* ---------- TABLE ---------- */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 14px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint);
+    border-bottom: 1px solid var(--border); background: var(--bg-alt);
+  }
+  tbody tr { border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background 0.2s ease; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody td { padding: 16px 20px; font-size: 0.88rem; vertical-align: middle; }
+
+  .cell-title { font-weight: 500; color: var(--cream); margin-bottom: 3px; }
+  .cell-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-faint); }
+
+  .badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; display: inline-block; }
+  .badge-critical { background: rgba(226,84,74,0.18); color: #FF9C93; }
+  .badge-high { background: rgba(239,169,64,0.18); color: var(--amber); }
+  .badge-medium { background: rgba(76,160,115,0.18); color: #86D6AA; }
+  .badge-low { background: rgba(147,160,180,0.18); color: var(--ink-soft); }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-new { background: #86B7E8; }
+  .dot-progress { background: var(--amber); }
+  .dot-resolved { background: var(--green); }
+  .dot-closed { background: var(--ink-faint); }
+
+  .dept-tag { font-size: 0.78rem; color: var(--ink-soft); }
+  .dept-tag.none { color: var(--ink-faint); font-style: italic; }
+
+  .empty-state, .loading-state {
+    padding: 60px 20px; text-align: center; color: var(--ink-soft);
+  }
+  .empty-state svg, .loading-state .spinner { margin-bottom: 14px; }
+  .spinner {
+    width: 26px; height: 26px; border: 3px solid var(--border); border-top-color: var(--amber);
+    border-radius: 50%; margin: 0 auto 14px; animation: spin 0.8s linear infinite;
+  }
+
+  .sla-breached {
+    background-color: #ffe6e6;
+    border-left: 4px solid #e74c3c;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: white;
+}
+
+.badge-critical { background-color: #c0392b; }
+.badge-high { background-color: #e67e22; }
+.badge-medium { background-color: #f39c12; }
+.badge-low { background-color: #27ae60; }
+
+  /* ---------- DETAIL PANEL (slide-over) ---------- */
+  .panel-overlay {
+    position: fixed; inset: 0; background: rgba(4,7,14,0.6); backdrop-filter: blur(2px);
+    z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .panel-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .detail-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 92vw;
+    background: var(--bg-alt); border-left: 1px solid var(--border);
+    z-index: 501; transform: translateX(100%); transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
+    display: flex; flex-direction: column;
+  }
+  .detail-panel.open { transform: translateX(0); }
+
+  .panel-head { padding: 24px 26px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+  .panel-head .pid { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-faint); margin-bottom: 6px; }
+  .panel-head h2 { font-size: 1.25rem; max-width: 340px; }
+  .panel-close {
+    width: 30px; height: 30px; border-radius: 50%; background: transparent; border: 1px solid var(--border);
+    color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+  .panel-close:hover { background: var(--red); color: var(--cream); border-color: var(--red); transform: rotate(90deg); }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 22px 26px; }
+
+  .panel-badges { display: flex; gap: 8px; margin-bottom: 20px; }
+
+  .panel-desc { font-size: 0.9rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .meta-item .ml { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+  .meta-item .mv { font-size: 0.88rem; color: var(--cream); }
+
+  .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--amber); margin-bottom: 14px; }
+
+  .timeline { position: relative; padding-left: 20px; margin-bottom: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 1px; background: var(--border); }
+  .timeline-item { position: relative; padding-bottom: 20px; }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -20px; top: 3px; width: 11px; height: 11px; border-radius: 50%;
+    background: var(--amber); border: 2px solid var(--bg-alt); box-shadow: 0 0 0 1px var(--border);
+  }
+  .timeline-item .tl-status { font-size: 0.85rem; font-weight: 600; color: var(--cream); margin-bottom: 3px; }
+  .timeline-item .tl-remarks { font-size: 0.82rem; color: var(--ink-soft); margin-bottom: 4px; }
+  .timeline-item .tl-meta { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--ink-faint); }
+
+  .update-form { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+  .field-group { margin-bottom: 14px; }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-group label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; text-transform: uppercase; color: var(--amber); margin-bottom: 7px; letter-spacing: 0.04em; }
+  .field-group select, .field-group input, .field-group textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 10px 12px; color: var(--cream); font-family: 'Inter', sans-serif; font-size: 0.86rem;
+    transition: border-color 0.2s ease;
+  }
+  .field-group select:focus, .field-group input:focus, .field-group textarea:focus { outline: none; border-color: var(--amber); }
+  .field-group textarea { resize: vertical; min-height: 60px; }
+
+  .update-btn {
+    width: 100%; background: var(--amber); color: var(--bg); border: none; padding: 12px;
+    border-radius: 5px; font-weight: 700; font-size: 0.88rem; cursor: pointer; margin-top: 4px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .update-btn:hover { background: var(--amber-soft); transform: translateY(-1px); }
+  .update-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .panel-status-msg { margin-top: 10px; font-size: 0.8rem; font-family: 'IBM Plex Mono', monospace; text-align: center; min-height: 16px; }
+  .panel-status-msg.success { color: #86D6AA; }
+  .panel-status-msg.error { color: #FF9C93; }
+
+  @media (max-width: 900px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .search-box { margin-left: 0; width: 100%; }
+    .search-box input { width: 100%; }
+    thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
+    .page-wrap { padding: 28px 20px 60px; }
+    nav { padding: 16px 20px; }
+  }
+
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="logo-mark"></span>Resolve</div>
+  <div class="nav-right">
+    <a href="dashboard.html" class="nav-back" style="color: var(--amber); font-weight:600;">Dashboard</a>
+    <a href="analytics.html" class="nav-back">Analytics</a>
+    <a href="index.html" class="nav-back">← Back to site</a>
+    <span class="badge" id="role-badge" style="background: rgba(239,169,64,0.15); color: var(--amber);">AGENT</span>
+    <div class="agent-chip">
+      <span class="agent-dot"></span>
+      <input type="text" id="agent-name" value="Agent" placeholder="Your name">
+    </div>
+    <button class="refresh-btn" onclick="logout()" style="padding: 8px 16px;">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <div>
+      <h1>Agent Dashboard</h1>
+      <p>Every complaint, triaged and ready to act on.</p>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadComplaints()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="stat-row" id="stat-row">
+    <div class="stat-chip open"><div class="n" id="stat-total">—</div><div class="l">Total</div></div>
+    <div class="stat-chip critical"><div class="n" id="stat-critical">—</div><div class="l">Critical</div></div>
+    <div class="stat-chip high"><div class="n" id="stat-high">—</div><div class="l">High</div></div>
+    <div class="stat-chip progress"><div class="n" id="stat-progress">—</div><div class="l">In Progress</div></div>
+    <div class="stat-chip resolved"><div class="n" id="stat-resolved">—</div><div class="l">Resolved</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-group" id="status-filters">
+      <div class="filter-chip active" data-status="ALL">All</div>
+      <div class="filter-chip" data-status="NEW">New</div>
+      <div class="filter-chip" data-status="IN_PROGRESS">In Progress</div>
+      <div class="filter-chip" data-status="RESOLVED">Resolved</div>
+      <div class="filter-chip" data-status="CLOSED">Closed</div>
+    </div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" placeholder="Search complaints...">
+    </div>
+  </div>
+
+  <div id="admin-panel" style="display:none; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 24px; margin-bottom: 24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div class="section-label" style="margin-bottom:4px;">Admin only</div>
+        <h3 style="font-size: 1.05rem; font-family:'Fraunces',serif;">Manage Departments</h3>
+      </div>
+      <div style="display:flex; gap: 8px;">
+        <input type="text" id="new-dept-name" placeholder="e.g. LEGAL" class="mono" style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 9px 13px; color: var(--cream); font-size: 0.85rem; width: 180px;">
+        <button class="refresh-btn" onclick="addDepartment()" id="add-dept-btn" style="background: var(--amber); color: var(--bg); border-color: var(--amber); font-weight: 600;">+ Add</button>
+      </div>
+    </div>
+    <div id="dept-list" style="display:flex; flex-wrap:wrap; gap: 8px;"></div>
+    <div class="panel-status-msg" id="dept-msg"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Complaint</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Department</th>
+          <th>Received</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="5"><div class="loading-state"><div class="spinner"></div>Loading complaints...</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="panel-head">
+    <div>
+      <div class="pid mono" id="panel-id">#CMS-000</div>
+      <h2 id="panel-title">Complaint title</h2>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-badges" id="panel-badges"></div>
+    <div class="panel-desc" id="panel-desc"></div>
+
+    <div class="meta-grid">
+      <div class="meta-item"><div class="ml">Source</div><div class="mv" id="panel-source">—</div></div>
+      <div class="meta-item"><div class="ml">Department</div><div class="mv" id="panel-dept">—</div></div>
+      <div class="meta-item"><div class="ml">Created</div><div class="mv" id="panel-created">—</div></div>
+      <div class="meta-item"><div class="ml">Updated</div><div class="mv" id="panel-updated">—</div></div>
+    </div>
+
+    <div class="section-label">Timeline</div>
+    <div class="timeline" id="panel-timeline">
+      <div class="loading-state" style="padding: 20px 0;"><div class="spinner"></div>Loading timeline...</div>
+    </div>
+
+    <div class="section-label">Update status</div>
+    <div class="update-form">
+      <div class="field-group">
+        <label>New status</label>
+        <select id="update-status">
+          <option value="NEW">New</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Remarks</label>
+        <textarea id="update-remarks" placeholder="e.g. Technician dispatched, ETA 2 hours"></textarea>
+      </div>
+      <button class="update-btn" id="update-btn" onclick="submitStatusUpdate()">Update status</button>
+      <div class="panel-status-msg" id="update-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+  let allComplaints = [];
+  let currentStatusFilter = 'ALL';
+  let currentComplaintId = null;
+
+  // ===== Auth guard =====
+  const authToken = localStorage.getItem('resolve_token');
+  if (!authToken) {
+    window.location.href = 'login.html';
+  }
+  const storedEmail = localStorage.getItem('resolve_email');
+  if (storedEmail) {
+    document.getElementById('agent-name').value = localStorage.getItem('resolve_name') || storedEmail.split('@')[0];
+  }
+
+  // ===== Role-based UI =====
+  const userRole = (localStorage.getItem('resolve_role') || 'AGENT').toUpperCase();
+  document.getElementById('role-badge').textContent = userRole;
+  if (userRole === 'ADMIN') {
+    document.getElementById('role-badge').style.background = 'rgba(226,84,74,0.15)';
+    document.getElementById('role-badge').style.color = '#FF9C93';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadDepartments();
+  }
+
+  async function loadDepartments() {
+    const list = document.getElementById('dept-list');
+    try {
+      const res = await fetch(API_BASE + '/api/departments');
+      const depts = await res.json();
+      if (depts.length === 0) {
+        list.innerHTML = '<span style="color: var(--ink-faint); font-size: 0.85rem;">No departments yet.</span>';
+        return;
+      }
+      list.innerHTML = depts.map(d => `<span class="badge" style="background: var(--surface-2); color: var(--cream); font-weight: 500;">${escapeHtml(d.name)}</span>`).join('');
+    } catch (err) {
+      list.innerHTML = '<span style="color: var(--ink-faint); font-size: 0.85rem;">Could not load departments.</span>';
+    }
+  }
+
+  async function addDepartment() {
+    const input = document.getElementById('new-dept-name');
+    const msg = document.getElementById('dept-msg');
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+      const res = await fetch(API_BASE + '/api/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.toUpperCase() })
+      });
+      if (!res.ok) throw new Error('Failed to add');
+      msg.textContent = 'Department added!';
+      msg.className = 'panel-status-msg success';
+      input.value = '';
+      loadDepartments();
+      setTimeout(() => { msg.textContent = ''; }, 2000);
+    } catch (err) {
+      msg.textContent = 'Could not add department (might already exist).';
+      msg.className = 'panel-status-msg error';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('resolve_token');
+    localStorage.removeItem('resolve_email');
+    window.location.href = 'login.html';
+  }
+
+  const priorityWeight = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+
+  function badgeClassForPriority(p) {
+    switch ((p || '').toUpperCase()) {
+      case 'CRITICAL': return 'badge-critical';
+      case 'HIGH': return 'badge-high';
+      case 'MEDIUM': return 'badge-medium';
+      default: return 'badge-low';
+    }
+  }
+
+  function dotClassForStatus(s) {
+    switch ((s || '').toUpperCase()) {
+      case 'NEW': return 'dot-new';
+      case 'IN_PROGRESS': return 'dot-progress';
+      case 'RESOLVED': return 'dot-resolved';
+      default: return 'dot-closed';
+    }
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) + ' · ' +
+           d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function loadComplaints() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '<tr><td colspan="5"><div class="loading-state"><div class="spinner"></div>Loading complaints...</div></td></tr>';
+
+    try {
+      const res = await fetch(API_BASE + '/api/complaints');
+      if (!res.ok) throw new Error('Failed: ' + res.status);
+      allComplaints = await res.json();
+      renderStats();
+      renderTable();
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Could not reach the backend.<br><span class="mono" style="font-size:0.75rem;">Check that Spring Boot is running on ' + API_BASE + '</span></div></td></tr>';
+      console.error(err);
+    } finally {
+      setTimeout(() => btn.classList.remove('spinning'), 400);
+    }
+  }
+
+  function renderStats() {
+    const total = allComplaints.length;
+    const critical = allComplaints.filter(c => (c.priorityLabel || '').toUpperCase() === 'CRITICAL').length;
+    const high = allComplaints.filter(c => (c.priorityLabel || '').toUpperCase() === 'HIGH').length;
+    const progress = allComplaints.filter(c => (c.status || '').toUpperCase() === 'IN_PROGRESS').length;
+    const resolved = allComplaints.filter(c => ['RESOLVED', 'CLOSED'].includes((c.status || '').toUpperCase())).length;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-critical').textContent = critical;
+    document.getElementById('stat-high').textContent = high;
+    document.getElementById('stat-progress').textContent = progress;
+    document.getElementById('stat-resolved').textContent = resolved;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('table-body');
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+    let filtered = allComplaints.filter(c => {
+      const matchesStatus = currentStatusFilter === 'ALL' || (c.status || '').toUpperCase() === currentStatusFilter;
+      const matchesSearch = !searchTerm ||
+        (c.title || '').toLowerCase().includes(searchTerm) ||
+        (c.category || '').toLowerCase().includes(searchTerm);
+      return matchesStatus && matchesSearch;
+    });
+
+    filtered.sort((a, b) => {
+      const pw = (priorityWeight[(a.priorityLabel || '').toUpperCase()] ?? 4) - (priorityWeight[(b.priorityLabel || '').toUpperCase()] ?? 4);
+      if (pw !== 0) return pw;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No complaints match this filter.</div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => `
+      <tr onclick="openPanel(${c.id})">
+        <td>
+          <div class="cell-title">${escapeHtml(c.title || 'Untitled')}</div>
+          <div class="cell-id">#CMS-${String(c.id).padStart(4, '0')} · ${escapeHtml(c.category || 'OTHER')}</div>
+        </td>
+        <td><span class="badge ${badgeClassForPriority(c.priorityLabel)}">${(c.priorityLabel || 'LOW').toUpperCase()}</span></td>
+        <td><span class="status-pill"><span class="status-dot ${dotClassForStatus(c.status)}"></span>${(c.status || 'NEW').replace('_', ' ')}</span></td>
+        <td><span class="dept-tag ${c.department ? '' : 'none'}">${c.department ? escapeHtml(c.department.name) : 'Unassigned'}</span></td>
+        <td class="mono" style="font-size:0.78rem; color: var(--ink-soft);">${formatDate(c.createdAt)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  document.getElementById('status-filters').addEventListener('click', (e) => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentStatusFilter = chip.dataset.status;
+    renderTable();
+  });
+
+  document.getElementById('search-input').addEventListener('input', renderTable);
+
+  // ===== Detail panel =====
+  const panelOverlay = document.getElementById('panel-overlay');
+  const detailPanel = document.getElementById('detail-panel');
+
+  async function openPanel(id) {
+    currentComplaintId = id;
+    const c = allComplaints.find(x => x.id === id);
+    if (!c) return;
+
+    document.getElementById('panel-id').textContent = '#CMS-' + String(c.id).padStart(4, '0');
+    document.getElementById('panel-title').textContent = c.title || 'Untitled';
+    document.getElementById('panel-desc').textContent = c.description || 'No description provided.';
+    document.getElementById('panel-source').textContent = c.source || '—';
+    document.getElementById('panel-dept').textContent = c.department ? c.department.name : 'Unassigned';
+    document.getElementById('panel-created').textContent = formatDate(c.createdAt);
+    document.getElementById('panel-updated').textContent = formatDate(c.updatedAt);
+
+    document.getElementById('panel-badges').innerHTML = `
+      <span class="badge ${badgeClassForPriority(c.priorityLabel)}">${(c.priorityLabel || 'LOW').toUpperCase()}</span>
+      <span class="status-pill"><span class="status-dot ${dotClassForStatus(c.status)}"></span>${(c.status || 'NEW').replace('_', ' ')}</span>
+    `;
+
+    document.getElementById('update-status').value = (c.status || 'NEW').toUpperCase();
+    document.getElementById('update-remarks').value = '';
+    document.getElementById('update-msg').textContent = '';
+    document.getElementById('update-msg').className = 'panel-status-msg';
+
+    panelOverlay.classList.add('open');
+    detailPanel.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    loadTimeline(id);
+  }
+
+  function closePanel() {
+    panelOverlay.classList.remove('open');
+    detailPanel.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+
+  async function loadTimeline(id) {
+    const container = document.getElementById('panel-timeline');
+    container.innerHTML = '<div class="loading-state" style="padding: 20px 0;"><div class="spinner"></div>Loading timeline...</div>';
+
+    try {
+      const res = await fetch(API_BASE + '/api/complaints/' + id + '/timeline');
+      if (!res.ok) throw new Error('Failed: ' + res.status);
+      const entries = await res.json();
+
+      if (entries.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 16px 0;">No timeline entries yet.</div>';
+        return;
+      }
+
+      container.innerHTML = entries.map(e => `
+        <div class="timeline-item">
+          <div class="tl-status">${(e.status || '').replace('_', ' ')}</div>
+          <div class="tl-remarks">${escapeHtml(e.remarks || '')}</div>
+          <div class="tl-meta">${escapeHtml(e.updatedBy || 'SYSTEM')} · ${formatDate(e.timestamp)}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state" style="padding: 16px 0;">Could not load timeline.</div>';
+      console.error(err);
+    }
+  }
+
+  async function submitStatusUpdate() {
+    if (!currentComplaintId) return;
+    const status = document.getElementById('update-status').value;
+    const remarks = document.getElementById('update-remarks').value || 'Status updated';
+    const updatedBy = document.getElementById('agent-name').value || 'Agent';
+    const btn = document.getElementById('update-btn');
+    const msg = document.getElementById('update-msg');
+
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+    msg.textContent = '';
+
+    try {
+      const url = `${API_BASE}/api/complaints/${currentComplaintId}/status?status=${encodeURIComponent(status)}&remarks=${encodeURIComponent(remarks)}&updatedBy=${encodeURIComponent(updatedBy)}`;
+      const res = await fetch(url, { method: 'PUT' });
+      if (!res.ok) throw new Error('Failed: ' + res.status);
+
+      msg.textContent = 'Status updated successfully!';
+      msg.className = 'panel-status-msg success';
+
+      await loadComplaints();
+      const updated = allComplaints.find(x => x.id === currentComplaintId);
+      if (updated) {
+        document.getElementById('panel-badges').innerHTML = `
+          <span class="badge ${badgeClassForPriority(updated.priorityLabel)}">${(updated.priorityLabel || 'LOW').toUpperCase()}</span>
+          <span class="status-pill"><span class="status-dot ${dotClassForStatus(updated.status)}"></span>${(updated.status || 'NEW').replace('_', ' ')}</span>
+        `;
+        document.getElementById('panel-updated').textContent = formatDate(updated.updatedAt);
+      }
+      loadTimeline(currentComplaintId);
+      document.getElementById('update-remarks').value = '';
+    } catch (err) {
+      msg.textContent = 'Could not update status. Check the backend.';
+      msg.className = 'panel-status-msg error';
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Update status';
+    }
+  }
+
+  loadComplaints();
+  // SLA rules (hours) based on priority
+const SLA_HOURS = {
+    CRITICAL: 4,
+    HIGH: 24,
+    MEDIUM: 72,
+    LOW: 168
+};
+
+function isSLABreached(complaint) {
+    // Only check if still open
+    if (complaint.status === 'RESOLVED' || complaint.status === 'CLOSED') {
+        return false;
+    }
+
+    const createdAt = new Date(complaint.createdAt);
+    const now = new Date();
+    const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+
+    const slaLimit = SLA_HOURS[complaint.priorityLabel] || 168;
+
+    return hoursElapsed > slaLimit;
+}
+
+function renderComplaintRow(complaint) {
+    const breached = isSLABreached(complaint);
+    const rowClass = breached ? 'sla-breached' : '';
+
+    return `
+        <tr class="${rowClass}">
+            <td>${complaint.id}</td>
+            <td>${complaint.title}</td>
+            <td><span class="badge badge-${complaint.priorityLabel.toLowerCase()}">${complaint.priorityLabel}</span></td>
+            <td>${complaint.status}</td>
+            <td>${breached ? '⚠️ SLA Breached' : '✅ On Time'}</td>
+        </tr>
+    `;
+}
+
+function updateSLASummary(complaints) {
+    const breachedCount = complaints.filter(isSLABreached).length;
+    document.getElementById('slaBreachedCount').innerText = breachedCount;
+}
+
+</script>
+
+</body>
+</html>

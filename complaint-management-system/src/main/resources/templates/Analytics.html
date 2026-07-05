@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolve — Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #070D18;
+    --bg-alt: #0B1526;
+    --surface: #101E36;
+    --surface-2: #172945;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.05);
+    --amber: #EFA940;
+    --amber-soft: #FFC471;
+    --red: #E2544A;
+    --green: #4CA073;
+    --blue: #86B7E8;
+    --cream: #F3EFE6;
+    --ink-soft: #93A0B4;
+    --ink-faint: #5E6B80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: -0.01em; }
+  a { text-decoration: none; color: inherit; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(7, 13, 24, 0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.15rem; }
+  .logo-mark { width: 24px; height: 24px; border: 2px solid var(--amber); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .logo-mark::after { content:''; width: 6px; height: 6px; background: var(--amber); border-radius: 50%; }
+  .nav-right { display: flex; align-items: center; gap: 18px; }
+  .nav-link { font-size: 0.85rem; color: var(--ink-soft); transition: color 0.2s ease; }
+  .nav-link:hover { color: var(--amber); }
+  .nav-link.active { color: var(--amber); font-weight: 600; }
+  .logout-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--cream);
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.82rem;
+    transition: border-color 0.2s ease; font-family: inherit;
+  }
+  .logout-btn:hover { border-color: var(--red); }
+
+  .page-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 40px 80px; }
+
+  .page-head { margin-bottom: 32px; }
+  .page-head h1 { font-size: 1.9rem; margin-bottom: 6px; }
+  .page-head p { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---------- KPI cards ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 22px 24px; transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .kpi-card:hover { transform: translateY(-3px); border-color: rgba(239,169,64,0.3); }
+  .kpi-card .kl { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 10px; }
+  .kpi-card .kv { font-family: 'IBM Plex Mono', monospace; font-size: 2rem; font-weight: 600; color: var(--cream); }
+  .kpi-card .ks { font-size: 0.8rem; color: var(--ink-soft); margin-top: 6px; }
+  .kpi-card.amber .kv { color: var(--amber); }
+  .kpi-card.green .kv { color: var(--green); }
+  .kpi-card.red .kv { color: var(--red); }
+
+  /* ---------- Chart grid ---------- */
+  .chart-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px 26px;
+  }
+  .chart-card h3 { font-size: 1.05rem; margin-bottom: 4px; }
+  .chart-card .sub { font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 18px; }
+  .chart-canvas-wrap { position: relative; height: 260px; }
+  .chart-canvas-wrap.tall { height: 300px; }
+
+  .empty-note {
+    text-align: center; color: var(--ink-faint); font-size: 0.85rem; padding: 40px 0;
+  }
+
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--ink-soft); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  @media (max-width: 980px) {
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+    .chart-grid, .chart-grid-2 { grid-template-columns: 1fr; }
+    .page-wrap { padding: 28px 20px 60px; }
+    nav { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="logo-mark"></span>Resolve</div>
+  <div class="nav-right">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="analytics.html" class="nav-link active">Analytics</a>
+    <a href="index.html" class="nav-link">Back to site</a>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h1>Analytics & Insights</h1>
+    <p>How complaints are flowing through the system, at a glance.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kl">Total Complaints</div>
+      <div class="kv" id="kpi-total">—</div>
+      <div class="ks">All time</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kl">Resolution Rate</div>
+      <div class="kv" id="kpi-rate">—</div>
+      <div class="ks">Resolved or closed</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kl">Avg. Resolution Time</div>
+      <div class="kv" id="kpi-avgtime">—</div>
+      <div class="ks">For resolved complaints</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kl">Open Critical/High</div>
+      <div class="kv" id="kpi-urgent">—</div>
+      <div class="ks">Needs attention now</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Complaints received over time</h3>
+      <div class="sub">Daily volume, based on creation date</div>
+      <div class="chart-canvas-wrap tall"><canvas id="chart-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>By status</h3>
+      <div class="sub">Where complaints currently stand</div>
+      <div class="chart-canvas-wrap tall"><canvas id="chart-status"></canvas></div>
+      <div class="legend-row" id="status-legend"></div>
+    </div>
+  </div>
+
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>By priority</h3>
+      <div class="sub">Urgency distribution across all complaints</div>
+      <div class="chart-canvas-wrap"><canvas id="chart-priority"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>By department</h3>
+      <div class="sub">Routing load per team</div>
+      <div class="chart-canvas-wrap"><canvas id="chart-dept"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  const authToken = localStorage.getItem('resolve_token');
+  if (!authToken) window.location.href = 'login.html';
+
+  function logout() {
+    localStorage.removeItem('resolve_token');
+    localStorage.removeItem('resolve_email');
+    localStorage.removeItem('resolve_role');
+    localStorage.removeItem('resolve_name');
+    window.location.href = 'login.html';
+  }
+
+  Chart.defaults.color = '#93A0B4';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size = 12;
+
+  const PALETTE = {
+    critical: '#E2544A',
+    high: '#EFA940',
+    medium: '#4CA073',
+    low: '#5E6B80',
+    newS: '#86B7E8',
+    progress: '#EFA940',
+    resolved: '#4CA073',
+    closed: '#5E6B80',
+    amber: '#EFA940',
+    grid: 'rgba(255,255,255,0.06)'
+  };
+
+  async function loadAnalytics() {
+    try {
+      const res = await fetch(API_BASE + '/api/complaints');
+      const complaints = await res.json();
+      renderKPIs(complaints);
+      renderTrendChart(complaints);
+      renderStatusChart(complaints);
+      renderPriorityChart(complaints);
+      renderDeptChart(complaints);
+    } catch (err) {
+      document.querySelector('.page-wrap').innerHTML = `
+        <div class="page-head"><h1>Analytics & Insights</h1></div>
+        <div class="chart-card"><div class="empty-note">Could not reach the backend. Make sure Spring Boot is running on ${API_BASE}.</div></div>
+      `;
+      console.error(err);
+    }
+  }
+
+  function renderKPIs(data) {
+    const total = data.length;
+    const resolvedCount = data.filter(c => ['RESOLVED', 'CLOSED'].includes((c.status || '').toUpperCase())).length;
+    const rate = total ? Math.round((resolvedCount / total) * 100) : 0;
+
+    const resolvedDurations = data
+      .filter(c => ['RESOLVED', 'CLOSED'].includes((c.status || '').toUpperCase()))
+      .map(c => (new Date(c.updatedAt) - new Date(c.createdAt)) / (1000 * 60 * 60));
+    const avgHours = resolvedDurations.length
+      ? (resolvedDurations.reduce((a, b) => a + b, 0) / resolvedDurations.length)
+      : 0;
+
+    const urgent = data.filter(c => {
+      const p = (c.priorityLabel || '').toUpperCase();
+      const s = (c.status || '').toUpperCase();
+      return (p === 'CRITICAL' || p === 'HIGH') && !['RESOLVED', 'CLOSED'].includes(s);
+    }).length;
+
+    document.getElementById('kpi-total').textContent = total;
+    document.getElementById('kpi-rate').textContent = rate + '%';
+    document.getElementById('kpi-avgtime').textContent = avgHours >= 24
+      ? (avgHours / 24).toFixed(1) + 'd'
+      : avgHours.toFixed(1) + 'h';
+    document.getElementById('kpi-urgent').textContent = urgent;
+  }
+
+  function renderTrendChart(data) {
+    const counts = {};
+    data.forEach(c => {
+      if (!c.createdAt) return;
+      const day = new Date(c.createdAt).toISOString().slice(0, 10);
+      counts[day] = (counts[day] || 0) + 1;
+    });
+    const days = Object.keys(counts).sort();
+    const values = days.map(d => counts[d]);
+    const labels = days.map(d => {
+      const dt = new Date(d);
+      return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    });
+
+    const ctx = document.getElementById('chart-trend');
+    if (days.length === 0) {
+      ctx.parentElement.innerHTML = '<div class="empty-note">No complaint data yet.</div>';
+      return;
+    }
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Complaints',
+          data: values,
+          borderColor: PALETTE.amber,
+          backgroundColor: 'rgba(239,169,64,0.12)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: PALETTE.amber,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: PALETTE.grid }, ticks: { color: '#93A0B4' } },
+          y: { beginAtZero: true, ticks: { precision: 0, color: '#93A0B4' }, grid: { color: PALETTE.grid } }
+        }
+      }
+    });
+  }
+
+  function renderStatusChart(data) {
+    const statuses = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+    const colors = [PALETTE.newS, PALETTE.progress, PALETTE.resolved, PALETTE.closed];
+    const counts = statuses.map(s => data.filter(c => (c.status || '').toUpperCase() === s).length);
+
+    const ctx = document.getElementById('chart-status');
+    if (data.length === 0) {
+      ctx.parentElement.innerHTML = '<div class="empty-note">No complaint data yet.</div>';
+      return;
+    }
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: statuses.map(s => s.replace('_', ' ')),
+        datasets: [{ data: counts, backgroundColor: colors, borderColor: '#101E36', borderWidth: 3 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const legend = document.getElementById('status-legend');
+    legend.innerHTML = statuses.map((s, i) => `
+      <div class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${s.replace('_', ' ')} (${counts[i]})</div>
+    `).join('');
+  }
+
+  function renderPriorityChart(data) {
+    const priorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const colors = [PALETTE.low, PALETTE.medium, PALETTE.high, PALETTE.critical];
+    const counts = priorities.map(p => data.filter(c => (c.priorityLabel || '').toUpperCase() === p).length);
+
+    const ctx = document.getElementById('chart-priority');
+    if (data.length === 0) {
+      ctx.parentElement.innerHTML = '<div class="empty-note">No complaint data yet.</div>';
+      return;
+    }
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: priorities,
+        datasets: [{ data: counts, backgroundColor: colors, borderRadius: 5, maxBarThickness: 44 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#93A0B4' } },
+          y: { beginAtZero: true, ticks: { precision: 0, color: '#93A0B4' }, grid: { color: PALETTE.grid } }
+        }
+      }
+    });
+  }
+
+  function renderDeptChart(data) {
+    const deptCounts = {};
+    data.forEach(c => {
+      const name = c.department ? c.department.name : 'Unassigned';
+      deptCounts[name] = (deptCounts[name] || 0) + 1;
+    });
+    const labels = Object.keys(deptCounts);
+    const values = Object.values(deptCounts);
+
+    const ctx = document.getElementById('chart-dept');
+    if (data.length === 0) {
+      ctx.parentElement.innerHTML = '<div class="empty-note">No complaint data yet.</div>';
+      return;
+    }
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ data: values, backgroundColor: PALETTE.amber, borderRadius: 5, maxBarThickness: 28 }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0, color: '#93A0B4' }, grid: { color: PALETTE.grid } },
+          y: { grid: { display: false }, ticks: { color: '#93A0B4' } }
+        }
+      }
+    });
+  }
+
+  loadAnalytics();
+</script>
+
+</body>
+</html>

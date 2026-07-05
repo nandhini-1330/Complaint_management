@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolve — Agent Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070D18;
+    --bg-alt: #0B1526;
+    --surface: #101E36;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.05);
+    --amber: #EFA940;
+    --amber-soft: #FFC471;
+    --amber-dark: #C4801C;
+    --red: #E2544A;
+    --green: #4CA073;
+    --cream: #F3EFE6;
+    --ink-soft: #93A0B4;
+    --ink-faint: #5E6B80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 85% -10%, rgba(239,169,64,0.14), transparent 45%),
+      radial-gradient(circle at 10% 110%, rgba(76,160,115,0.09), transparent 40%),
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: auto, auto, 42px 42px, 42px 42px;
+    pointer-events: none;
+  }
+
+  h1, h2 { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: -0.01em; }
+  a { text-decoration: none; color: inherit; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .auth-shell { position: relative; z-index: 2; width: 100%; max-width: 400px; }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 28px;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover { color: var(--amber); }
+
+  .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 34px; }
+  .logo-mark { width: 30px; height: 30px; border: 2px solid var(--amber); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .logo-mark::after { content:''; width: 8px; height: 8px; background: var(--amber); border-radius: 50%; }
+  .logo-row span { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.35rem; }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 32px;
+    box-shadow: 0 30px 70px -30px rgba(0,0,0,0.6);
+  }
+
+  .tab-row {
+    display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px; margin-bottom: 28px;
+  }
+  .tab-btn {
+    flex: 1; text-align: center; padding: 9px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+    color: var(--ink-soft); cursor: pointer; transition: background 0.25s ease, color 0.25s ease;
+  }
+  .tab-btn.active { background: var(--amber); color: var(--bg); }
+
+  .auth-card h2 { font-size: 1.5rem; margin-bottom: 6px; }
+  .auth-sub { color: var(--ink-soft); font-size: 0.87rem; margin-bottom: 26px; }
+
+  .field-group { margin-bottom: 16px; }
+  .field-group label {
+    display: block; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--amber); margin-bottom: 7px;
+  }
+  .field-group input, .field-group select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 11px 13px; color: var(--cream); font-family: 'Inter', sans-serif; font-size: 0.92rem;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .field-group input:focus, .field-group select:focus {
+    outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(239,169,64,0.14);
+  }
+
+  .submit-btn {
+    width: 100%; background: var(--amber); color: var(--bg); border: none; padding: 13px;
+    border-radius: 6px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 6px;
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    font-family: 'Inter', sans-serif;
+  }
+  .submit-btn:hover { background: var(--amber-soft); transform: translateY(-2px); box-shadow: 0 10px 22px -8px rgba(239,169,64,0.55); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .form-msg {
+    margin-top: 14px; font-size: 0.83rem; font-family: 'IBM Plex Mono', monospace; text-align: center; min-height: 18px;
+  }
+  .form-msg.success { color: #86D6AA; }
+  .form-msg.error { color: #FF9C93; }
+
+  .demo-note {
+    margin-top: 20px; padding: 12px 14px; background: var(--bg); border: 1px dashed var(--border);
+    border-radius: 6px; font-size: 0.78rem; color: var(--ink-faint); line-height: 1.5;
+  }
+  .demo-note b { color: var(--ink-soft); }
+
+  .form-section { display: none; }
+  .form-section.active { display: block; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <a href="index.html" class="back-link">← Back to site</a>
+
+  <div class="logo-row">
+    <span class="logo-mark"></span>
+    <span>Resolve</span>
+  </div>
+
+  <div class="auth-card">
+    <div class="tab-row">
+      <div class="tab-btn active" data-tab="login">Sign In</div>
+      <div class="tab-btn" data-tab="register">Register</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="form-section active" id="section-login">
+      <h2>Welcome back</h2>
+      <p class="auth-sub">Sign in to view and manage complaints.</p>
+
+      <form id="login-form">
+        <div class="field-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required placeholder="you@resolve.com">
+        </div>
+        <div class="field-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="submit-btn" id="login-btn">Sign in</button>
+        <div class="form-msg" id="login-msg"></div>
+      </form>
+
+      <div class="demo-note">
+        Don't have an account yet? Switch to <b>Register</b> above to create an agent login.
+      </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form-section" id="section-register">
+      <h2>Create agent account</h2>
+      <p class="auth-sub">Register to get access to the complaint dashboard.</p>
+
+      <form id="register-form">
+        <div class="field-group">
+          <label for="reg-name">Full name</label>
+          <input type="text" id="reg-name" required placeholder="John Agent">
+        </div>
+        <div class="field-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" required placeholder="you@resolve.com">
+        </div>
+        <div class="field-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" required placeholder="At least 8 characters" minlength="6">
+        </div>
+        <div class="field-group">
+          <label for="reg-role">Role</label>
+          <select id="reg-role">
+            <option value="AGENT">Agent</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+        <button type="submit" class="submit-btn" id="register-btn">Create account</button>
+        <div class="form-msg" id="register-msg"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('section-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // If already logged in, go straight to dashboard
+  if (localStorage.getItem('resolve_token')) {
+    window.location.href = 'dashboard.html';
+  }
+
+  // Login
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('login-msg');
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    msg.textContent = '';
+    msg.className = 'form-msg';
+
+    try {
+      const res = await fetch(API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+
+      localStorage.setItem('resolve_token', data.token);
+      localStorage.setItem('resolve_email', email);
+      localStorage.setItem('resolve_role', data.role || 'AGENT');
+      localStorage.setItem('resolve_name', data.name || email.split('@')[0]);
+
+      msg.textContent = 'Signed in! Redirecting...';
+      msg.className = 'form-msg success';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
+    } catch (err) {
+      msg.textContent = err.message || 'Could not sign in. Check your credentials.';
+      msg.className = 'form-msg error';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    }
+  });
+
+  // Register
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('register-btn');
+    const msg = document.getElementById('register-msg');
+
+    const payload = {
+      name: document.getElementById('reg-name').value,
+      email: document.getElementById('reg-email').value,
+      password: document.getElementById('reg-password').value,
+      role: document.getElementById('reg-role').value
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+    msg.textContent = '';
+    msg.className = 'form-msg';
+
+    try {
+      const res = await fetch(API_BASE + '/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+      msg.textContent = 'Account created! Switching to sign in...';
+      msg.className = 'form-msg success';
+
+      setTimeout(() => {
+        document.querySelector('.tab-btn[data-tab="login"]').click();
+        document.getElementById('login-email').value = payload.email;
+      }, 900);
+    } catch (err) {
+      msg.textContent = err.message || 'Could not create account.';
+      msg.className = 'form-msg error';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create account';
+    }
+  });
+</script>
+
+</body>
+</html>
