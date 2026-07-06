@@ -1,4 +1,4 @@
-﻿package com.complaintms.complaint_management_system;
+package com.complaintms.complaint_management_system;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
